@@ -16,13 +16,13 @@ class SimulationConfig:
     total_time_s: float = 1.8
     dominant_frequency_hz: float = 4.0
     maximum_interpreted_frequency_hz: float = 12.0
-    soil_layer_thickness_m: float = 50.0
+    soil_layer_thickness_m: float = 20.0
     soil_density_kg_m3: float = 1800.0
     soil_shear_velocity_m_s: float = 250.0
     rock_density_kg_m3: float = 2200.0
     rock_shear_velocity_m_s: float = 800.0
     absorbing_layer_thickness_m: float = 80.0
-    absorbing_strength: float = 3.5
+    absorbing_strength: float = 4.5
     project_root: Path = Path(__file__).resolve().parents[2]
 
     @property
