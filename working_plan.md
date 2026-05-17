@@ -6,33 +6,31 @@ Finite-Difference Simulation of Seismic Site Response in Layered Ground
 
 ---
 
-## Project purpose
+## 1. Project purpose
 
-This project implements a finite-difference model for seismic shear-wave propagation in layered ground and uses it to study site amplification. The goal is to connect classroom numerical methods with a practical earthquake-engineering problem.
+This project uses finite differences to model seismic shear-wave propagation through layered ground and to estimate site amplification. The goal is to show how a classroom numerical method becomes a practical earthquake-engineering calculation.
 
-The main deliverable is a **1D velocity-stress finite-difference model** for vertically propagating shear waves. The model is verified using a homogeneous medium and then applied to a soft soil layer over stiffer rock. A simplified 2D SH-wave basin model may be added as an optional extension after the 1D model is verified.
+The main deliverable is a **verified 1D velocity-stress finite-difference model** for vertically propagating shear waves. The model is first tested in a homogeneous medium, then applied to a soft soil layer over stiff rock. A simplified 2D SH-wave basin model can be added only after the 1D model works.
 
-The project emphasizes:
+The project should demonstrate:
 
-- discretization of a governing PDE;
-- explicit time stepping;
-- stability through the Courant condition;
-- grid-resolution requirements;
-- arrival-time verification;
-- frequency-domain site amplification;
-- engineering interpretation of numerical results.
+- how a PDE becomes algebraic update equations;
+- why stability depends on the time step;
+- why accuracy depends on wavelength resolution;
+- how a soft layer changes surface motion;
+- how numerical results connect to site amplification.
 
 ---
 
-## Final selected direction
+## 2. Final selected direction
 
-> A verified 1D velocity-stress finite-difference simulation of vertically propagating shear waves through layered ground, with site amplification as the main engineering application.
+> A 1D velocity-stress finite-difference simulation of vertically propagating shear waves through layered ground, verified in a homogeneous medium and applied to site amplification of a soft layer over rock.
 
-This direction is rigorous enough for a graduate-level course project while remaining controlled enough to validate quantitatively.
+This is the core project because it is rigorous, verifiable, and directly tied to earthquake engineering. The 2D extension is useful for visualization and basin effects, but the 1D model provides the main scientific evidence.
 
 ---
 
-## Notation
+## 3. Notation
 
 | Symbol | Meaning |
 |---|---|
@@ -47,18 +45,25 @@ This direction is rigorous enough for a graduate-level course project while rema
 | $\Delta t$ | time step |
 | $H$ | soft-layer thickness |
 | $Z$ | shear impedance |
+| $C$ | Courant number |
+| $A(f)$ | amplification factor |
 
 ---
 
-# 1. Governing mathematical model
+# 4. Governing mathematical model
 
-## 1.1 Physical idealization
+## 4.1 Physical idealization
 
-The main model represents vertically propagating, horizontally polarized shear motion through a soil column. The dependent variables are $v(z,t)$ and $\tau(z,t)$.
+The main model is a vertical soil column. Motion is assumed to be horizontally polarized and vertically propagating. This is the standard simplified setting for 1D shear-wave site response.
 
-The material model is defined by $\rho(z)$, $\mu(z)$, and $V_s(z)$.
+The two unknown fields are:
 
-## 1.2 Shear-wave velocity
+- $v(z,t)$: horizontal particle velocity;
+- $\tau(z,t)$: shear stress.
+
+The material profile is defined by $\rho(z)$, $\mu(z)$, and $V_s(z)$. A soft soil layer has smaller $V_s$ and lower impedance than rock, so waves slow down, reflect, and can reverberate inside the layer.
+
+## 4.2 Shear-wave velocity
 
 The shear-wave velocity is computed from density and shear modulus:
 
@@ -66,15 +71,15 @@ $$
 V_s(z)=\sqrt{\frac{\mu(z)}{\rho(z)}}
 $$
 
-Equivalently, the shear modulus is:
+Equivalently:
 
 $$
 \mu(z)=\rho(z)V_s^2(z)
 $$
 
-This relation links the physical material profile to wave speed and numerical stability.
+This relation is used to construct the material model. It also controls the stability limit because faster waves require smaller time steps.
 
-## 1.3 1D velocity-stress equations
+## 4.3 1D velocity-stress equations
 
 The 1D SH-wave velocity-stress system is:
 
@@ -86,13 +91,13 @@ $$
 \frac{\partial \tau}{\partial t}=\mu(z)\frac{\partial v}{\partial z}
 $$
 
-Interpretation:
+Physical meaning:
 
-- stress gradient drives particle acceleration;
-- velocity gradient updates shear stress;
-- the coupling between $v$ and $\tau$ propagates shear waves.
+- a stress gradient accelerates the soil particles;
+- a velocity gradient creates shear deformation and updates stress;
+- the repeated exchange between velocity and stress propagates the wave.
 
-## 1.4 Equivalent homogeneous wave equation
+## 4.4 Equivalent homogeneous wave equation
 
 For constant $\rho$ and $\mu$, the velocity-stress system reduces to:
 
@@ -100,15 +105,15 @@ $$
 \frac{\partial^2 v}{\partial t^2}=V_s^2\frac{\partial^2 v}{\partial z^2}
 $$
 
-This form is used for travel-time verification in the homogeneous model.
+This equation is useful for verification because the wave speed is exactly $V_s$ in a homogeneous medium.
 
 ---
 
-# 2. Numerical discretization
+# 5. Numerical discretization
 
-## 2.1 Grid definition
+## 5.1 Grid definition
 
-The vertical grid and time levels are:
+Depth and time are discretized as:
 
 $$
 z_i=i\Delta z
@@ -118,11 +123,13 @@ $$
 t^n=n\Delta t
 $$
 
-where $i$ is the depth index and $n$ is the time index.
+Here, $i$ indexes depth and $n$ indexes time. The numerical solution stores values only at discrete grid points and advances them step by step.
 
-## 2.2 Staggered grid
+## 5.2 Why a staggered grid is used
 
-The staggered layout is:
+Velocity and stress are naturally offset. Stress differences update velocity, and velocity differences update stress. A staggered grid places each variable where the derivative needs it.
+
+The layout is:
 
 $$
 v_i \quad \text{at integer grid points}
@@ -138,9 +145,9 @@ $$
 v \text{ at } n+\frac{1}{2}, \qquad \tau \text{ at } n
 $$
 
-This gives the natural leapfrog velocity-stress update.
+This creates a leapfrog update: stress updates velocity, then velocity updates stress.
 
-## 2.3 Core 2nd-order finite-difference update equations
+## 5.3 Core 2nd-order update equations
 
 Velocity update:
 
@@ -158,27 +165,27 @@ $$
 \left(\frac{v_{i+1}^{n+1/2}-v_i^{n+1/2}}{\Delta z}\right)
 $$
 
-These two equations are the required solver.
+These are the main computational equations of the project.
 
-## 2.4 Truncation behavior
+## 5.4 Truncation error and grid refinement
 
-For a central finite-difference derivative:
+A central finite-difference derivative is approximated by:
 
 $$
 \frac{\partial f}{\partial z}\approx\frac{f_{i+1}-f_{i-1}}{2\Delta z}
 $$
 
-The leading spatial truncation error is:
+For a 2nd-order scheme, the leading spatial truncation error is:
 
 $$
 \mathcal{O}(\Delta z^2)
 $$
 
-The numerical error should decrease as the grid is refined.
+This means reducing $\Delta z$ should reduce the numerical error. The grid-refinement study checks this behavior.
 
-## 2.5 Optional 4th-order derivative
+## 5.5 Optional 4th-order derivative
 
-A 4th-order central derivative may be added as an extension:
+A 4th-order central derivative may be added later:
 
 $$
 \frac{\partial f}{\partial z}\approx
@@ -191,15 +198,15 @@ $$
 \mathcal{O}(\Delta z^4)
 $$
 
-This should only be used after the 2nd-order solver is verified.
+This can reduce numerical dispersion, but it requires a wider stencil and more careful boundary treatment. It is an extension, not the core requirement.
 
 ---
 
-# 3. Stability and grid-resolution logic
+# 6. Stability and grid-resolution logic
 
-## 3.1 Courant number
+## 6.1 Courant number
 
-The Courant number is:
+The Courant number measures how far a wave travels in one time step relative to the grid spacing:
 
 $$
 C=\frac{V_{s,\max}\Delta t}{\Delta z}
@@ -211,27 +218,29 @@ $$
 C\leq 1
 $$
 
-A conservative target is:
+Use a conservative target:
 
 $$
 C\leq 0.8
 $$
 
-## 3.2 Wavelength and points per wavelength
+If $C$ is too large, the numerical solution can grow artificially and become unstable.
 
-For frequency $f$, wavelength is:
+## 6.2 Wavelength resolution
+
+A wave of frequency $f$ has wavelength:
 
 $$
 \lambda=\frac{V_s}{f}
 $$
 
-The shortest wavelength is:
+The shortest wavelength controls the grid spacing:
 
 $$
 \lambda_{\min}=\frac{V_{s,\min}}{f_{\max}}
 $$
 
-The number of grid points per wavelength is:
+The number of grid points per shortest wavelength is:
 
 $$
 N_{\mathrm{ppw}}=\frac{\lambda_{\min}}{\Delta z}
@@ -243,50 +252,56 @@ $$
 N_{\mathrm{ppw}}\geq 10
 $$
 
-## 3.3 Frequency resolution
+This reduces numerical dispersion and keeps the wave speed physically reasonable.
 
-For total simulation duration $T$, the frequency resolution is:
+## 6.3 Frequency resolution
+
+The frequency spacing in the Fourier spectrum depends on total simulation duration $T$:
 
 $$
 \Delta f=\frac{1}{T}
 $$
 
-The simulation duration must be long enough to resolve the expected site-response frequencies.
+A longer simulation gives finer frequency resolution. This matters because the amplification peaks must be resolved clearly.
 
-## 3.4 Nyquist frequency
+## 6.4 Nyquist frequency
 
-The Nyquist frequency is:
+The maximum resolvable frequency from the time step is:
 
 $$
 f_{\mathrm{Nyquist}}=\frac{1}{2\Delta t}
 $$
 
-The source frequency content should remain well below this limit.
+The source frequency content should stay well below $f_{\mathrm{Nyquist}}$.
 
 ---
 
-# 4. Source function
+# 7. Source function
 
-## 4.1 Ricker wavelet
+## 7.1 Ricker wavelet
 
-The preferred source is a Ricker wavelet:
+A Ricker wavelet is used because it is smooth, finite-duration, and has controlled frequency content:
 
 $$
 s(t)=\left[1-2\pi^2 f_0^2(t-t_0)^2\right]
 \exp\left[-\pi^2 f_0^2(t-t_0)^2\right]
 $$
 
-where $f_0$ is the dominant frequency and $t_0$ is the time shift.
+Here, $f_0$ is the dominant frequency and $t_0$ shifts the pulse so it starts near zero.
 
-The source spectrum must overlap the expected site-response range.
+## 7.2 Source-frequency logic
+
+The source must contain energy near the expected site-resonance frequencies. If the soil layer resonates near $f_1$, the source spectrum should include energy around $f_1$ and the first few higher modes.
+
+The source time history and source spectrum should be plotted before interpreting amplification results.
 
 ---
 
-# 5. Material models
+# 8. Material models
 
-## 5.1 Homogeneous reference model
+## 8.1 Homogeneous reference model
 
-The homogeneous reference model is:
+The homogeneous model is used for verification only:
 
 $$
 \rho(z)=\rho_{\mathrm{rock}}
@@ -300,7 +315,7 @@ $$
 \mu(z)=\rho_{\mathrm{rock}}V_{s,\mathrm{rock}}^2
 $$
 
-The theoretical travel time is:
+Because the velocity is constant, the theoretical travel time is known:
 
 $$
 t_{\mathrm{theory}}=\frac{d}{V_{s,\mathrm{rock}}}
@@ -308,16 +323,18 @@ $$
 
 where $d$ is the travel distance.
 
-Arrival-time error is:
+The arrival-time error is:
 
 $$
 \mathrm{Error}(\%)=
 \frac{\left|t_{\mathrm{num}}-t_{\mathrm{theory}}\right|}{t_{\mathrm{theory}}}\times100
 $$
 
-## 5.2 Layered soil-over-rock model
+This is the simplest quantitative check that the solver propagates waves at the correct speed.
 
-The layered model is:
+## 8.2 Layered soil-over-rock model
+
+The engineering model is a soft layer over stiff rock:
 
 $$
 0\leq z\leq H \quad \text{soft soil layer}
@@ -345,7 +362,9 @@ $$
 \end{cases}
 $$
 
-## 5.3 Shear impedance and reflection coefficient
+This model is simple, but it captures the key mechanism of site response: impedance contrast and wave trapping.
+
+## 8.3 Shear impedance and reflection
 
 Shear impedance is:
 
@@ -353,7 +372,7 @@ $$
 Z=\rho V_s
 $$
 
-For normally incident SH waves, the reflection coefficient is approximated by:
+At the soil-rock interface, a normally incident SH wave has approximate reflection coefficient:
 
 $$
 R=\frac{Z_2-Z_1}{Z_2+Z_1}
@@ -361,13 +380,13 @@ $$
 
 where $Z_1$ is the impedance of the upper layer and $Z_2$ is the impedance of the lower layer.
 
-A larger impedance contrast produces stronger reflection and greater potential for resonance.
+A larger impedance contrast produces stronger reflections and greater potential for resonance in the soft layer.
 
 ---
 
-# 6. Boundary conditions
+# 9. Boundary conditions
 
-## 6.1 Stress-free surface
+## 9.1 Stress-free surface
 
 At the ground surface:
 
@@ -375,11 +394,13 @@ $$
 \tau(z=0,t)=0
 $$
 
-This represents zero shear traction at the ground surface.
+This represents zero shear traction at the surface. It is important because the engineering output is surface motion.
 
-## 6.2 Bottom absorbing region
+## 9.2 Bottom absorbing region
 
-A simple damping mask may be applied near the bottom boundary:
+The computational domain is finite, so the bottom boundary can create artificial reflections. A damping layer near the base reduces this effect.
+
+A simple damping mask is:
 
 $$
 D(z)=\exp\left[-\alpha\eta^2(z)\right]
@@ -395,23 +416,23 @@ $$
 \tau\leftarrow D(z)\tau
 $$
 
-This reduces artificial reflections from the finite computational boundary.
+This is an approximate absorbing boundary. Late-time results should be interpreted carefully if boundary reflections appear.
 
 ---
 
-# 7. Site amplification logic
+# 10. Site amplification logic
 
-## 7.1 Surface response
+## 10.1 Surface response
 
-The recorded surface response is:
+The main recorded output is the surface velocity:
 
 $$
 v_{\mathrm{surface}}(t)=v(z=0,t)
 $$
 
-This is recorded for the homogeneous rock reference model and the layered soil-over-rock model.
+This is recorded for both the homogeneous reference model and the layered model.
 
-## 7.2 Fourier spectra
+## 10.2 Fourier spectra
 
 The Fourier-domain responses are:
 
@@ -423,7 +444,9 @@ $$
 V_{\mathrm{layered}}(f)=\mathcal{F}\left[v_{\mathrm{surface,layered}}(t)\right]
 $$
 
-## 7.3 Amplification factor
+The spectra show which frequencies are present in the surface motion.
+
+## 10.3 Amplification factor
 
 The site amplification factor is:
 
@@ -431,14 +454,15 @@ $$
 A(f)=\frac{\left|V_{\mathrm{layered}}(f)\right|}{\left|V_{\mathrm{ref}}(f)\right|+\epsilon}
 $$
 
-where $\epsilon$ is a small number used only to avoid division by zero.
+where $\epsilon$ only prevents division by zero.
 
 Interpretation:
 
 - $A(f)=1$: no amplification relative to rock;
-- $A(f)>1$: amplification at that frequency.
+- $A(f)>1$: amplification at that frequency;
+- peaks in $A(f)$: possible resonance frequencies.
 
-## 7.4 Quarter-wavelength resonance
+## 10.4 Quarter-wavelength resonance
 
 For a soft layer of thickness $H$ over stiff rock, approximate resonant frequencies are:
 
@@ -452,15 +476,15 @@ $$
 f_1=\frac{V_{s,\mathrm{soil}}}{4H}
 $$
 
-These frequencies should be marked on the amplification plot.
+These frequencies should be marked on the amplification plot. Agreement does not need to be exact; the formula is a physical interpretation tool.
 
 ---
 
-# 8. Numerical verification and quality checks
+# 11. Numerical verification and quality checks
 
-## 8.1 Stability check
+## 11.1 Stability check
 
-Before each run:
+Before every run, compute:
 
 $$
 C=\frac{V_{s,\max}\Delta t}{\Delta z}
@@ -478,7 +502,7 @@ $$
 C\leq0.8
 $$
 
-## 8.2 Arrival-time verification
+## 11.2 Arrival-time verification
 
 For a receiver at depth $z_r$ in a homogeneous medium:
 
@@ -486,14 +510,16 @@ $$
 t_{\mathrm{theory}}=\frac{z_r}{V_s}
 $$
 
-The percent error is:
+Percent error:
 
 $$
 \mathrm{Error}(\%)=
 \frac{|t_{\mathrm{num}}-t_{\mathrm{theory}}|}{t_{\mathrm{theory}}}\times100
 $$
 
-## 8.3 Grid-refinement behavior
+This directly checks whether the numerical wave speed is correct.
+
+## 11.3 Grid-refinement behavior
 
 Run the same homogeneous problem with decreasing grid spacing:
 
@@ -507,15 +533,17 @@ $$
 \mathrm{Error}\downarrow \quad \text{as} \quad \Delta z\downarrow
 $$
 
-For a clean 2nd-order scheme, the idealized relationship is:
+For a clean 2nd-order scheme:
 
 $$
 \mathrm{Error}\propto(\Delta z)^2
 $$
 
-## 8.4 Energy diagnostic
+The observed slope may not be exact because arrival picking, source bandwidth, and finite time step affect the measurement.
 
-For an undamped homogeneous model, a useful diagnostic is total discrete energy:
+## 11.4 Energy diagnostic
+
+For an undamped homogeneous model:
 
 $$
 E(t)=\sum_i\left[\frac{1}{2}\rho_i v_i^2+\frac{1}{2}\frac{\tau_{i+1/2}^2}{\mu_{i+1/2}}\right]\Delta z
@@ -525,7 +553,7 @@ After the source input ends, energy should remain bounded. Large artificial grow
 
 ---
 
-# 9. Stage-wise implementation plan
+# 12. Stage-wise implementation plan
 
 ## Stage 1: Parameters and equations
 
@@ -565,7 +593,9 @@ Deliverables:
 
 ## Stage 2: Homogeneous solver
 
-Implement the staggered velocity-stress update and verify with:
+Implement the staggered velocity-stress update and run the homogeneous model. This is the first real test of the solver.
+
+Verify with:
 
 $$
 t_{\mathrm{theory}}=\frac{z_r}{V_{s,\mathrm{rock}}}
@@ -595,19 +625,11 @@ Deliverables:
 
 - convergence table;
 - log-log grid-refinement plot;
-- short interpretation of observed error trend.
+- short interpretation of the observed trend.
 
 ## Stage 4: Layered site-response model
 
-Build the layered model:
-
-$$
-0\leq z\leq H \quad \text{soft soil}
-$$
-
-$$
-z>H \quad \text{rock}
-$$
+Build the soft-layer-over-rock model. This stage introduces the engineering mechanism: wave reflection and reverberation caused by impedance contrast.
 
 Compute:
 
@@ -637,7 +659,7 @@ Deliverables:
 
 ## Stage 5: Site amplification
 
-Compute:
+Compute spectra and amplification:
 
 $$
 V_{\mathrm{ref}}(f)=\mathcal{F}[v_{\mathrm{ref}}(t)]
@@ -664,7 +686,7 @@ Deliverables:
 
 ## Stage 6: Optional 4th-order comparison
 
-Use:
+Use the 4th-order derivative:
 
 $$
 \frac{\partial f}{\partial z}\approx
@@ -681,11 +703,11 @@ Deliverables:
 
 ---
 
-# 10. Optional 2D SH-wave extension
+# 13. Optional 2D SH-wave extension
 
-If time allows, extend the same concept to 2D SH-wave propagation in an $x$-$z$ basin cross-section.
+If time allows, extend the same concept to 2D SH-wave propagation in an $x$-$z$ basin cross-section. This is not required for the core project, but it shows how the same logic expands from a soil column to a basin.
 
-## 10.1 2D SH equations
+## 13.1 2D SH equations
 
 Unknowns:
 
@@ -709,7 +731,7 @@ $$
 \frac{\partial\tau_{zy}}{\partial t}=\mu\frac{\partial v_y}{\partial z}
 $$
 
-## 10.2 2D stability condition
+## 13.2 2D stability condition
 
 A practical 2D CFL condition is:
 
@@ -723,7 +745,7 @@ $$
 \frac{V_{s,\max}\Delta t}{h}\leq\frac{1}{\sqrt{2}}
 $$
 
-## 10.3 2D outputs
+## 13.3 2D outputs
 
 - wavefield snapshots;
 - basin-edge scattering;
@@ -734,7 +756,7 @@ This extension should be presented as qualitative unless a separate validation c
 
 ---
 
-# 11. Visualization plan
+# 14. Visualization plan
 
 ## Required figures
 
@@ -790,7 +812,7 @@ Recommended animation features:
 
 ---
 
-# 12. Final report structure
+# 15. Final report structure
 
 1. Abstract
 2. Engineering motivation
@@ -807,7 +829,7 @@ Recommended animation features:
 
 ---
 
-# 13. Main conclusions to support
+# 16. Main conclusions to support
 
 The final report should support these claims:
 
@@ -822,7 +844,7 @@ The final report should support these claims:
 
 ---
 
-# 14. Limitations to state clearly
+# 17. Limitations to state clearly
 
 - The main model is 1D and does not capture basin-edge focusing.
 - The material model is linear elastic.
@@ -834,6 +856,6 @@ The final report should support these claims:
 
 ---
 
-# 15. Final project statement
+# 18. Final project statement
 
 This project implements a transparent finite-difference model for seismic shear-wave propagation in layered ground. It uses mathematical discretization, stability checks, verification against analytical travel time, spectral site-response analysis, and a layered-reflection animation to connect numerical methods with earthquake-engineering interpretation.
