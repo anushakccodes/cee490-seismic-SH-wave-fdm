@@ -37,7 +37,8 @@ cee490-computer-methods/
 │   ├── convergence_plot.png
 │   ├── layered_wavefield.png
 │   ├── site_amplification.png
-│   └── wave_animation.gif
+│   ├── wave_animation.gif
+│   └── animation_layered_reflection.gif
 │
 ├── results/
 │   ├── homogeneous_results.npz
@@ -173,7 +174,8 @@ Run the soft-layer-over-rock model. Compare the surface response with the homoge
 
 - layered wavefield plot;
 - surface response comparison;
-- reflection/reverberation visualization.
+- reflection/reverberation visualization;
+- `animation_layered_reflection.gif` showing wave reflection and reverberation at the soil-rock interface.
 
 ---
 
@@ -197,7 +199,7 @@ Compute the Fourier spectra of the reference and layered-site responses. Divide 
 
 ## Stage 7: Animation and final presentation
 
-Create one animation to show wave propagation through the soil column. Use it for presentation, not as the main validation result.
+Create animations to show wave propagation through the soil column. Use them for presentation, not as the main validation result.
 
 **Main files:**
 
@@ -207,6 +209,7 @@ Create one animation to show wave propagation through the soil column. Use it fo
 **Outputs:**
 
 - `wave_animation.gif`;
+- `animation_layered_reflection.gif`;
 - final notebook;
 - final report figures.
 
@@ -227,7 +230,7 @@ Then open:
 notebooks/01_run_project.ipynb
 ```
 
-Use the notebook to present the method, results, figures, and conclusions.
+Use the notebook to present the method, results, figures, animations, and conclusions.
 
 ---
 
@@ -235,7 +238,7 @@ Use the notebook to present the method, results, figures, and conclusions.
 
 - Clean source code in `src/site_response/`
 - One readable notebook in `notebooks/`
-- Saved figures in `figures/`
+- Saved figures and animations in `figures/`
 - Saved numerical results in `results/`
 - Final report in `report/`
 - Short README explaining how to reproduce the project
