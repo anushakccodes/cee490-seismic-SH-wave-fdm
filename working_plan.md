@@ -32,68 +32,73 @@ This direction is rigorous enough for a graduate-level course project while rema
 
 ---
 
+## Notation
+
+| Symbol | Meaning |
+|---|---|
+| $z$ | depth coordinate |
+| $t$ | time |
+| $v(z,t)$ | horizontal particle velocity |
+| $\tau(z,t)$ | shear stress |
+| $\rho(z)$ | density |
+| $\mu(z)$ | shear modulus |
+| $V_s(z)$ | shear-wave velocity |
+| $\Delta z$ | spatial grid spacing |
+| $\Delta t$ | time step |
+| $H$ | soft-layer thickness |
+| $Z$ | shear impedance |
+
+---
+
 # 1. Governing mathematical model
 
 ## 1.1 Physical idealization
 
-The main model represents vertically propagating, horizontally polarized shear motion through a soil column.
+The main model represents vertically propagating, horizontally polarized shear motion through a soil column. The dependent variables are $v(z,t)$ and $\tau(z,t)$.
 
-Independent variables:
-
-```text
-z = depth
-t = time
-```
-
-Dependent variables:
-
-```text
-v(z,t)   = horizontal particle velocity
-tau(z,t) = shear stress
-```
-
-Material properties:
-
-```text
-rho(z) = density
-mu(z)  = shear modulus
-Vs(z)  = shear-wave velocity
-```
+The material model is defined by $\rho(z)$, $\mu(z)$, and $V_s(z)$.
 
 ## 1.2 Shear-wave velocity
 
-```text
-Vs(z) = sqrt(mu(z) / rho(z))
-```
+The shear-wave velocity is computed from density and shear modulus:
 
-Equivalently:
+$$
+V_s(z)=\sqrt{\frac{\mu(z)}{\rho(z)}}
+$$
 
-```text
-mu(z) = rho(z) * Vs(z)^2
-```
+Equivalently, the shear modulus is:
 
-This relation links the material model directly to wave speed and numerical stability.
+$$
+\mu(z)=\rho(z)V_s^2(z)
+$$
+
+This relation links the physical material profile to wave speed and numerical stability.
 
 ## 1.3 1D velocity-stress equations
 
-```text
-rho(z) * partial v / partial t = partial tau / partial z
-partial tau / partial t = mu(z) * partial v / partial z
-```
+The 1D SH-wave velocity-stress system is:
+
+$$
+\rho(z)\frac{\partial v}{\partial t}=\frac{\partial \tau}{\partial z}
+$$
+
+$$
+\frac{\partial \tau}{\partial t}=\mu(z)\frac{\partial v}{\partial z}
+$$
 
 Interpretation:
 
 - stress gradient drives particle acceleration;
 - velocity gradient updates shear stress;
-- the coupling between `v` and `tau` propagates shear waves.
+- the coupling between $v$ and $\tau$ propagates shear waves.
 
 ## 1.4 Equivalent homogeneous wave equation
 
-For constant `rho` and `mu`, the velocity-stress system reduces to:
+For constant $\rho$ and $\mu$, the velocity-stress system reduces to:
 
-```text
-partial^2 v / partial t^2 = Vs^2 * partial^2 v / partial z^2
-```
+$$
+\frac{\partial^2 v}{\partial t^2}=V_s^2\frac{\partial^2 v}{\partial z^2}
+$$
 
 This form is used for travel-time verification in the homogeneous model.
 
@@ -103,69 +108,71 @@ This form is used for travel-time verification in the homogeneous model.
 
 ## 2.1 Grid definition
 
-```text
-z_i = i * Delta z
-t^n = n * Delta t
-```
+The vertical grid and time levels are:
 
-where:
+$$
+z_i=i\Delta z
+$$
 
-```text
-Delta z = spatial grid spacing
-Delta t = time step
-i       = depth index
-n       = time index
-```
+$$
+t^n=n\Delta t
+$$
+
+where $i$ is the depth index and $n$ is the time index.
 
 ## 2.2 Staggered grid
 
-```text
-v_i          stored at integer grid points
-tau_{i+1/2} stored halfway between velocity points
-```
+The staggered layout is:
+
+$$
+v_i \quad \text{at integer grid points}
+$$
+
+$$
+\tau_{i+1/2} \quad \text{halfway between velocity points}
+$$
 
 Time is also staggered:
 
-```text
-v   at n + 1/2
-tau at n
-```
+$$
+v \text{ at } n+\frac{1}{2}, \qquad \tau \text{ at } n
+$$
 
 This gives the natural leapfrog velocity-stress update.
 
-## 2.3 Core 2nd-order update equations
+## 2.3 Core 2nd-order finite-difference update equations
 
 Velocity update:
 
-```text
-v_i^{n+1/2} = v_i^{n-1/2}
-              + (Delta t / rho_i)
-              * (tau_{i+1/2}^n - tau_{i-1/2}^n) / Delta z
-```
+$$
+v_i^{n+1/2}=v_i^{n-1/2}
++\frac{\Delta t}{\rho_i}
+\left(\frac{\tau_{i+1/2}^{n}-\tau_{i-1/2}^{n}}{\Delta z}\right)
+$$
 
 Stress update:
 
-```text
-tau_{i+1/2}^{n+1} = tau_{i+1/2}^n
-                    + mu_{i+1/2} * Delta t
-                    * (v_{i+1}^{n+1/2} - v_i^{n+1/2}) / Delta z
-```
+$$
+\tau_{i+1/2}^{n+1}=\tau_{i+1/2}^{n}
++\mu_{i+1/2}\Delta t
+\left(\frac{v_{i+1}^{n+1/2}-v_i^{n+1/2}}{\Delta z}\right)
+$$
 
-This is the required solver.
+These two equations are the required solver.
 
 ## 2.4 Truncation behavior
 
 For a central finite-difference derivative:
 
-```text
-partial f / partial z ≈ (f_{i+1} - f_{i-1}) / (2 * Delta z)
-```
+$$
+\frac{\partial f}{\partial z}\approx\frac{f_{i+1}-f_{i-1}}{2\Delta z}
+$$
 
 The leading spatial truncation error is:
 
-```text
-O(Delta z^2)
-```
+$$
+\mathcal{O}(\Delta z^2)
+$$
 
 The numerical error should decrease as the grid is refined.
 
@@ -173,16 +180,16 @@ The numerical error should decrease as the grid is refined.
 
 A 4th-order central derivative may be added as an extension:
 
-```text
-partial f / partial z ≈
-(-f_{i+2} + 8f_{i+1} - 8f_{i-1} + f_{i-2}) / (12 * Delta z)
-```
+$$
+\frac{\partial f}{\partial z}\approx
+\frac{-f_{i+2}+8f_{i+1}-8f_{i-1}+f_{i-2}}{12\Delta z}
+$$
 
 The leading spatial truncation error is:
 
-```text
-O(Delta z^4)
-```
+$$
+\mathcal{O}(\Delta z^4)
+$$
 
 This should only be used after the 2nd-order solver is verified.
 
@@ -192,49 +199,67 @@ This should only be used after the 2nd-order solver is verified.
 
 ## 3.1 Courant number
 
-```text
-C = Vs_max * Delta t / Delta z
-```
+The Courant number is:
 
-For the explicit 1D wave solver:
+$$
+C=\frac{V_{s,\max}\Delta t}{\Delta z}
+$$
 
-```text
-C <= 1
-```
+For the explicit 1D wave solver, the stability requirement is:
 
-Use a conservative target:
+$$
+C\leq 1
+$$
 
-```text
-C <= 0.8
-```
+A conservative target is:
+
+$$
+C\leq 0.8
+$$
 
 ## 3.2 Wavelength and points per wavelength
 
-```text
-lambda = Vs / f
-lambda_min = Vs_min / f_max
-N_ppw = lambda_min / Delta z
-```
+For frequency $f$, wavelength is:
+
+$$
+\lambda=\frac{V_s}{f}
+$$
+
+The shortest wavelength is:
+
+$$
+\lambda_{\min}=\frac{V_{s,\min}}{f_{\max}}
+$$
+
+The number of grid points per wavelength is:
+
+$$
+N_{\mathrm{ppw}}=\frac{\lambda_{\min}}{\Delta z}
+$$
 
 For the main 2nd-order scheme:
 
-```text
-N_ppw >= 10
-```
+$$
+N_{\mathrm{ppw}}\geq 10
+$$
 
 ## 3.3 Frequency resolution
 
-```text
-Delta f = 1 / T
-```
+For total simulation duration $T$, the frequency resolution is:
 
-The simulation duration `T` must be long enough to resolve the expected site-response frequencies.
+$$
+\Delta f=\frac{1}{T}
+$$
+
+The simulation duration must be long enough to resolve the expected site-response frequencies.
 
 ## 3.4 Nyquist frequency
 
-```text
-f_Nyquist = 1 / (2 * Delta t)
-```
+The Nyquist frequency is:
+
+$$
+f_{\mathrm{Nyquist}}=\frac{1}{2\Delta t}
+$$
 
 The source frequency content should remain well below this limit.
 
@@ -244,17 +269,14 @@ The source frequency content should remain well below this limit.
 
 ## 4.1 Ricker wavelet
 
-```text
-s(t) = [1 - 2*pi^2*f0^2*(t - t0)^2]
-       * exp[-pi^2*f0^2*(t - t0)^2]
-```
+The preferred source is a Ricker wavelet:
 
-where:
+$$
+s(t)=\left[1-2\pi^2 f_0^2(t-t_0)^2\right]
+\exp\left[-\pi^2 f_0^2(t-t_0)^2\right]
+$$
 
-```text
-f0 = dominant frequency
-t0 = time shift
-```
+where $f_0$ is the dominant frequency and $t_0$ is the time shift.
 
 The source spectrum must overlap the expected site-response range.
 
@@ -264,47 +286,80 @@ The source spectrum must overlap the expected site-response range.
 
 ## 5.1 Homogeneous reference model
 
-```text
-rho(z) = rho_rock
-Vs(z)  = Vs_rock
-mu(z)  = rho_rock * Vs_rock^2
-```
+The homogeneous reference model is:
 
-Theoretical travel time:
+$$
+\rho(z)=\rho_{\mathrm{rock}}
+$$
 
-```text
-t_theory = travel_distance / Vs_rock
-```
+$$
+V_s(z)=V_{s,\mathrm{rock}}
+$$
 
-Arrival-time error:
+$$
+\mu(z)=\rho_{\mathrm{rock}}V_{s,\mathrm{rock}}^2
+$$
 
-```text
-error_percent = |t_numerical - t_theory| / t_theory * 100
-```
+The theoretical travel time is:
+
+$$
+t_{\mathrm{theory}}=\frac{d}{V_{s,\mathrm{rock}}}
+$$
+
+where $d$ is the travel distance.
+
+Arrival-time error is:
+
+$$
+\mathrm{Error}(\%)=
+\frac{\left|t_{\mathrm{num}}-t_{\mathrm{theory}}\right|}{t_{\mathrm{theory}}}\times100
+$$
 
 ## 5.2 Layered soil-over-rock model
 
-```text
-0 <= z <= H: soft soil layer
-z > H:       stiffer rock halfspace
-```
+The layered model is:
 
-```text
-Vs(z) = Vs_soil, rho(z) = rho_soil   for 0 <= z <= H
-Vs(z) = Vs_rock, rho(z) = rho_rock   for z > H
-```
+$$
+0\leq z\leq H \quad \text{soft soil layer}
+$$
 
-Shear impedance:
+$$
+z>H \quad \text{stiffer rock halfspace}
+$$
 
-```text
-Z = rho * Vs
-```
+Material properties are:
 
-Reflection coefficient for normally incident SH waves:
+$$
+V_s(z)=
+\begin{cases}
+V_{s,\mathrm{soil}}, & 0\leq z\leq H \\
+V_{s,\mathrm{rock}}, & z>H
+\end{cases}
+$$
 
-```text
-R = (Z_2 - Z_1) / (Z_2 + Z_1)
-```
+$$
+\rho(z)=
+\begin{cases}
+\rho_{\mathrm{soil}}, & 0\leq z\leq H \\
+\rho_{\mathrm{rock}}, & z>H
+\end{cases}
+$$
+
+## 5.3 Shear impedance and reflection coefficient
+
+Shear impedance is:
+
+$$
+Z=\rho V_s
+$$
+
+For normally incident SH waves, the reflection coefficient is approximated by:
+
+$$
+R=\frac{Z_2-Z_1}{Z_2+Z_1}
+$$
+
+where $Z_1$ is the impedance of the upper layer and $Z_2$ is the impedance of the lower layer.
 
 A larger impedance contrast produces stronger reflection and greater potential for resonance.
 
@@ -314,9 +369,11 @@ A larger impedance contrast produces stronger reflection and greater potential f
 
 ## 6.1 Stress-free surface
 
-```text
-tau(z = 0, t) = 0
-```
+At the ground surface:
+
+$$
+\tau(z=0,t)=0
+$$
 
 This represents zero shear traction at the ground surface.
 
@@ -324,16 +381,19 @@ This represents zero shear traction at the ground surface.
 
 A simple damping mask may be applied near the bottom boundary:
 
-```text
-D(z) = exp[-alpha * eta(z)^2]
-```
+$$
+D(z)=\exp\left[-\alpha\eta^2(z)\right]
+$$
 
-Apply inside the damping zone:
+The fields are damped inside the absorbing zone:
 
-```text
-v   <- D(z) * v
-tau <- D(z) * tau
-```
+$$
+v\leftarrow D(z)v
+$$
+
+$$
+\tau\leftarrow D(z)\tau
+$$
 
 This reduces artificial reflections from the finite computational boundary.
 
@@ -343,52 +403,54 @@ This reduces artificial reflections from the finite computational boundary.
 
 ## 7.1 Surface response
 
-```text
-v_surface(t) = v(z = 0, t)
-```
+The recorded surface response is:
 
-Record this for:
+$$
+v_{\mathrm{surface}}(t)=v(z=0,t)
+$$
 
-- homogeneous rock reference model;
-- layered soil-over-rock model.
+This is recorded for the homogeneous rock reference model and the layered soil-over-rock model.
 
 ## 7.2 Fourier spectra
 
-```text
-V_ref(f)      = FFT[v_surface, reference]
-V_layered(f)  = FFT[v_surface, layered]
-```
+The Fourier-domain responses are:
+
+$$
+V_{\mathrm{ref}}(f)=\mathcal{F}\left[v_{\mathrm{surface,ref}}(t)\right]
+$$
+
+$$
+V_{\mathrm{layered}}(f)=\mathcal{F}\left[v_{\mathrm{surface,layered}}(t)\right]
+$$
 
 ## 7.3 Amplification factor
 
-```text
-A(f) = |V_layered(f)| / (|V_ref(f)| + epsilon)
-```
+The site amplification factor is:
+
+$$
+A(f)=\frac{\left|V_{\mathrm{layered}}(f)\right|}{\left|V_{\mathrm{ref}}(f)\right|+\epsilon}
+$$
+
+where $\epsilon$ is a small number used only to avoid division by zero.
 
 Interpretation:
 
-```text
-A(f) = 1  -> no amplification
-A(f) > 1  -> amplification at that frequency
-```
+- $A(f)=1$: no amplification relative to rock;
+- $A(f)>1$: amplification at that frequency.
 
 ## 7.4 Quarter-wavelength resonance
 
-```text
-f_n = (2n - 1) * Vs_soil / (4H)
-```
+For a soft layer of thickness $H$ over stiff rock, approximate resonant frequencies are:
 
-where:
+$$
+f_n=\frac{(2n-1)V_{s,\mathrm{soil}}}{4H}, \qquad n=1,2,3,\dots
+$$
 
-```text
-n = 1, 2, 3, ...
-```
+The fundamental frequency is:
 
-Fundamental frequency:
-
-```text
-f_1 = Vs_soil / (4H)
-```
+$$
+f_1=\frac{V_{s,\mathrm{soil}}}{4H}
+$$
 
 These frequencies should be marked on the amplification plot.
 
@@ -400,56 +462,64 @@ These frequencies should be marked on the amplification plot.
 
 Before each run:
 
-```text
-C = Vs_max * Delta t / Delta z
-```
+$$
+C=\frac{V_{s,\max}\Delta t}{\Delta z}
+$$
 
 Acceptable:
 
-```text
-C <= 1
-```
+$$
+C\leq1
+$$
 
 Preferred:
 
-```text
-C <= 0.8
-```
+$$
+C\leq0.8
+$$
 
 ## 8.2 Arrival-time verification
 
-```text
-t_theory = z_receiver / Vs
-error_percent = |t_numerical - t_theory| / t_theory * 100
-```
+For a receiver at depth $z_r$ in a homogeneous medium:
+
+$$
+t_{\mathrm{theory}}=\frac{z_r}{V_s}
+$$
+
+The percent error is:
+
+$$
+\mathrm{Error}(\%)=
+\frac{|t_{\mathrm{num}}-t_{\mathrm{theory}}|}{t_{\mathrm{theory}}}\times100
+$$
 
 ## 8.3 Grid-refinement behavior
 
-Run the same homogeneous problem with:
+Run the same homogeneous problem with decreasing grid spacing:
 
-```text
-Delta z_1 > Delta z_2 > Delta z_3
-```
+$$
+\Delta z_1>\Delta z_2>\Delta z_3
+$$
 
 Expected trend:
 
-```text
-error decreases as Delta z decreases
-```
+$$
+\mathrm{Error}\downarrow \quad \text{as} \quad \Delta z\downarrow
+$$
 
-For a clean 2nd-order scheme:
+For a clean 2nd-order scheme, the idealized relationship is:
 
-```text
-error proportional to (Delta z)^2
-```
+$$
+\mathrm{Error}\propto(\Delta z)^2
+$$
 
 ## 8.4 Energy diagnostic
 
-For an undamped homogeneous model:
+For an undamped homogeneous model, a useful diagnostic is total discrete energy:
 
-```text
-E(t) = sum[0.5 * rho * v^2 + 0.5 * tau^2 / mu] * Delta z
-```
+$$
+E(t)=\sum_i\left[\frac{1}{2}\rho_i v_i^2+\frac{1}{2}\frac{\tau_{i+1/2}^2}{\mu_{i+1/2}}\right]\Delta z
+$$
 
 After the source input ends, energy should remain bounded. Large artificial growth indicates instability.
 
@@ -459,25 +529,33 @@ After the source input ends, energy should remain bounded. Large artificial grow
 
 ## Stage 1: Parameters and equations
 
-Define:
-
-```text
-Delta z, Delta t, T, H
-rho_soil, Vs_soil, mu_soil
-rho_rock, Vs_rock, mu_rock
-f0, t0
-```
+Define $\Delta z$, $\Delta t$, $T$, $H$, $\rho_{\mathrm{soil}}$, $V_{s,\mathrm{soil}}$, $\mu_{\mathrm{soil}}$, $\rho_{\mathrm{rock}}$, $V_{s,\mathrm{rock}}$, $\mu_{\mathrm{rock}}$, $f_0$, and $t_0$.
 
 Compute:
 
-```text
-mu = rho * Vs^2
-Z = rho * Vs
-C = Vs_max * Delta t / Delta z
-lambda_min = Vs_min / f_max
-N_ppw = lambda_min / Delta z
-Delta f = 1 / T
-```
+$$
+\mu=\rho V_s^2
+$$
+
+$$
+Z=\rho V_s
+$$
+
+$$
+C=\frac{V_{s,\max}\Delta t}{\Delta z}
+$$
+
+$$
+\lambda_{\min}=\frac{V_{s,\min}}{f_{\max}}
+$$
+
+$$
+N_{\mathrm{ppw}}=\frac{\lambda_{\min}}{\Delta z}
+$$
+
+$$
+\Delta f=\frac{1}{T}
+$$
 
 Deliverables:
 
@@ -487,11 +565,11 @@ Deliverables:
 
 ## Stage 2: Homogeneous solver
 
-Implement the staggered velocity-stress update and verify:
+Implement the staggered velocity-stress update and verify with:
 
-```text
-t_theory = z_receiver / Vs_rock
-```
+$$
+t_{\mathrm{theory}}=\frac{z_r}{V_{s,\mathrm{rock}}}
+$$
 
 Deliverables:
 
@@ -501,19 +579,17 @@ Deliverables:
 
 ## Stage 3: Grid-refinement study
 
-Run the homogeneous model at several grid spacings.
+Run the homogeneous model at several grid spacings. For each run, compute:
 
-For each run:
-
-```text
-error_percent = |t_numerical - t_theory| / t_theory * 100
-```
+$$
+\mathrm{Error}(\%)=\frac{|t_{\mathrm{num}}-t_{\mathrm{theory}}|}{t_{\mathrm{theory}}}\times100
+$$
 
 Plot:
 
-```text
-log(error) versus log(Delta z)
-```
+$$
+\log(\mathrm{Error}) \quad \text{versus} \quad \log(\Delta z)
+$$
 
 Deliverables:
 
@@ -523,21 +599,33 @@ Deliverables:
 
 ## Stage 4: Layered site-response model
 
-Build:
+Build the layered model:
 
-```text
-soft soil: 0 <= z <= H
-rock:      z > H
-```
+$$
+0\leq z\leq H \quad \text{soft soil}
+$$
+
+$$
+z>H \quad \text{rock}
+$$
 
 Compute:
 
-```text
-Z_soil = rho_soil * Vs_soil
-Z_rock = rho_rock * Vs_rock
-R = (Z_rock - Z_soil) / (Z_rock + Z_soil)
-f_1 = Vs_soil / (4H)
-```
+$$
+Z_{\mathrm{soil}}=\rho_{\mathrm{soil}}V_{s,\mathrm{soil}}
+$$
+
+$$
+Z_{\mathrm{rock}}=\rho_{\mathrm{rock}}V_{s,\mathrm{rock}}
+$$
+
+$$
+R=\frac{Z_{\mathrm{rock}}-Z_{\mathrm{soil}}}{Z_{\mathrm{rock}}+Z_{\mathrm{soil}}}
+$$
+
+$$
+f_1=\frac{V_{s,\mathrm{soil}}}{4H}
+$$
 
 Deliverables:
 
@@ -551,12 +639,21 @@ Deliverables:
 
 Compute:
 
-```text
-V_ref(f) = FFT[v_ref(t)]
-V_layered(f) = FFT[v_layered(t)]
-A(f) = |V_layered(f)| / (|V_ref(f)| + epsilon)
-f_n = (2n - 1) * Vs_soil / (4H)
-```
+$$
+V_{\mathrm{ref}}(f)=\mathcal{F}[v_{\mathrm{ref}}(t)]
+$$
+
+$$
+V_{\mathrm{layered}}(f)=\mathcal{F}[v_{\mathrm{layered}}(t)]
+$$
+
+$$
+A(f)=\frac{|V_{\mathrm{layered}}(f)|}{|V_{\mathrm{ref}}(f)|+\epsilon}
+$$
+
+$$
+f_n=\frac{(2n-1)V_{s,\mathrm{soil}}}{4H}
+$$
 
 Deliverables:
 
@@ -569,17 +666,12 @@ Deliverables:
 
 Use:
 
-```text
-partial f / partial z ≈
-(-f_{i+2} + 8f_{i+1} - 8f_{i-1} + f_{i-2}) / (12 * Delta z)
-```
+$$
+\frac{\partial f}{\partial z}\approx
+\frac{-f_{i+2}+8f_{i+1}-8f_{i-1}+f_{i-2}}{12\Delta z}
+$$
 
-Compare:
-
-- arrival-time error;
-- waveform shape;
-- runtime;
-- numerical dispersion behavior.
+Compare arrival-time error, waveform shape, runtime, and numerical dispersion behavior.
 
 Deliverables:
 
@@ -591,37 +683,45 @@ Deliverables:
 
 # 10. Optional 2D SH-wave extension
 
-If time allows, extend the same concept to 2D SH-wave propagation in an `x-z` basin cross-section.
+If time allows, extend the same concept to 2D SH-wave propagation in an $x$-$z$ basin cross-section.
 
 ## 10.1 2D SH equations
 
 Unknowns:
 
-```text
-v_y(x,z,t)
-tau_xy(x,z,t)
-tau_zy(x,z,t)
-```
+$$
+v_y(x,z,t), \qquad \tau_{xy}(x,z,t), \qquad \tau_{zy}(x,z,t)
+$$
 
-Equations:
+The governing equations are:
 
-```text
-rho * partial v_y / partial t = partial tau_xy / partial x + partial tau_zy / partial z
-partial tau_xy / partial t = mu * partial v_y / partial x
-partial tau_zy / partial t = mu * partial v_y / partial z
-```
+$$
+\rho\frac{\partial v_y}{\partial t}
+=\frac{\partial\tau_{xy}}{\partial x}
++\frac{\partial\tau_{zy}}{\partial z}
+$$
+
+$$
+\frac{\partial\tau_{xy}}{\partial t}=\mu\frac{\partial v_y}{\partial x}
+$$
+
+$$
+\frac{\partial\tau_{zy}}{\partial t}=\mu\frac{\partial v_y}{\partial z}
+$$
 
 ## 10.2 2D stability condition
 
-```text
-Vs_max * Delta t * sqrt(1 / Delta x^2 + 1 / Delta z^2) <= 1
-```
+A practical 2D CFL condition is:
 
-For `Delta x = Delta z = h`:
+$$
+V_{s,\max}\Delta t\sqrt{\frac{1}{\Delta x^2}+\frac{1}{\Delta z^2}}\leq1
+$$
 
-```text
-Vs_max * Delta t / h <= 1 / sqrt(2)
-```
+For $\Delta x=\Delta z=h$:
+
+$$
+\frac{V_{s,\max}\Delta t}{h}\leq\frac{1}{\sqrt{2}}
+$$
 
 ## 10.3 2D outputs
 
@@ -639,13 +739,13 @@ This extension should be presented as qualitative unless a separate validation c
 ## Required figures
 
 1. **Material profile**
-   - `Vs(z)` versus depth;
-   - `Z(z) = rho(z)Vs(z)` versus depth;
+   - $V_s(z)$ versus depth;
+   - $Z(z)=\rho(z)V_s(z)$ versus depth;
    - soil-rock interface marked.
 
 2. **Source plot**
-   - Ricker wavelet `s(t)`;
-   - source spectrum `|S(f)|`;
+   - Ricker wavelet $s(t)$;
+   - source spectrum $|S(f)|$;
    - dominant frequency marked.
 
 3. **Homogeneous verification**
@@ -654,7 +754,7 @@ This extension should be presented as qualitative unless a separate validation c
    - numerical arrival time marked.
 
 4. **Grid-refinement plot**
-   - `log(error)` versus `log(Delta z)`.
+   - $\log(\mathrm{Error})$ versus $\log(\Delta z)$.
 
 5. **Layered wavefield plot**
    - depth-time velocity image;
@@ -665,9 +765,9 @@ This extension should be presented as qualitative unless a separate validation c
    - layered-site surface response.
 
 7. **Site amplification plot**
-   - `|V_ref(f)|`;
-   - `|V_layered(f)|`;
-   - `A(f)` with resonance markers.
+   - $|V_{\mathrm{ref}}(f)|$;
+   - $|V_{\mathrm{layered}}(f)|$;
+   - $A(f)$ with resonance markers.
 
 ## Required animation
 
