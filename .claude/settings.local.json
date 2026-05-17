@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from src.site_response.analysis import run_convergence_study, compute_amplification, run_layered_site_case; print\\('imports OK'\\)\")"
+    ]
+  }
+}
