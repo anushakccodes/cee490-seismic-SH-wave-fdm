@@ -1,0 +1,2 @@
+source_depth_m,receiver_depth_m,travel_distance_m,shear_velocity_m_s,source_peak_time_s,theoretical_peak_arrival_s,numerical_peak_arrival_s,absolute_error_s,percent_error
+150.0,0.0,150.0,800.0,0.375,0.5625,0.56375,0.0012499999999999734,0.2222222222222175
