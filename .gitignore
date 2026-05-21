@@ -42,3 +42,5 @@ desktop.ini
 # Results and figures (uncomment if you want to track them)
 # results/
 # figures/
+
+.gitignore
